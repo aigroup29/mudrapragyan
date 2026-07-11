@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MudraPragyan.AI</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #050510;
+      --surface:  #0d0d1f;
+      --card:     #111127;
+      --teal:     #00d4c8;
+      --purple:   #8b5cf6;
+      --blue:     #3b82f6;
+      --white:    #f1f5f9;
+      --muted:    #64748b;
+      --border:   rgba(139,92,246,0.2);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg) url('bg.png') center center / cover no-repeat fixed;
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* ── Hamburger + Side Menu ── */
+    .hamburger {
+      position: fixed;
+      top: 1.2rem; left: 1.2rem;
+      z-index: 1000;
+      background: rgba(13,13,31,0.9);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem 0.7rem;
+      cursor: pointer;
+      display: flex; flex-direction: column; gap: 5px;
+      backdrop-filter: blur(10px);
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--teal);
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0; left: -280px;
+      width: 260px; height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      z-index: 999;
+      transition: left 0.3s ease;
+      padding: 5rem 1.5rem 2rem;
+      display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .side-menu.open { left: 0; }
+
+    .side-menu-logo {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .side-menu-logo img { width: 40px; height: 40px; object-fit: contain; }
+    .side-menu-logo span { font-weight: 700; font-size: 1rem; color: var(--white); }
+
+    .side-menu a {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.95rem; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .side-menu a:hover, .side-menu a.active {
+      background: rgba(139,92,246,0.12);
+      color: var(--white);
+    }
+    .side-menu a span.icon { font-size: 1.1rem; }
+
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 998;
+      display: none;
+      backdrop-filter: blur(2px);
+    }
+    .overlay.show { display: block; }
+
+    /* ── Pages ── */
+    .page { display: none; min-height: 100vh; }
+    .page.active { display: block; }
+
+    /* ── HOME PAGE ── */
+    #home {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 3rem 2rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+    #home.active { display: flex; }
+
+    .home-logo {
+      width: 200px; height: 200px;
+      object-fit: contain;
+      margin-bottom: 1.5rem;
+      filter: none;
+    }
+
+    .title-box {
+      margin-bottom: 2rem;
+      display: inline-block;
+    }
+
+.home-title {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--teal), var(--blue), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      -webkit-text-stroke: 2px rgba(0,0,0,0.9);
+      filter: drop-shadow(0 0 16px rgba(0,212,200,1)) drop-shadow(0 0 32px rgba(0,212,200,0.7));
+      line-height: 1.1;
+      margin-bottom: 0.5rem;
+    }
+
+    .home-tagline {
+      color: #ffffff;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin-bottom: 0;
+      text-shadow: 0 0 16px rgba(0,212,200,1), 0 0 32px rgba(0,212,200,0.7);
+    }
+
+    .about-box {
+      width: 700px;
+      flex-shrink: 0;
+      background: rgba(5,5,16,0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.5rem 2rem;
+      color: #ffffff;
+      font-size: 1.1rem;
+      line-height: 1.75;
+      text-align: center;
+    }
+
+    .home-middle {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 2rem;
+      width: 100%;
+      max-width: 1400px;
+      padding: 0 1rem;
+    }
+
+    .home-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      flex-shrink: 0;
+      width: 260px;
+      margin-top: -4rem;
+    }
+    .home-card:hover {
+      border-color: var(--teal);
+      box-shadow: 0 0 40px rgba(0,212,200,0.12);
+      transform: translateY(-4px);
+    }
+    .home-card .card-icon { font-size: 2.8rem; margin-bottom: 1rem; }
+    .home-card .card-title {
+      font-size: 1.2rem; font-weight: 700;
+      color: var(--white); margin-bottom: 0.5rem;
+    }
+    .home-card .card-desc {
+      font-size: 0.83rem; color: var(--muted); line-height: 1.6;
+      margin-bottom: 1.2rem;
+    }
+    .home-card .card-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .home-card .card-btn:hover { opacity: 0.85; }
+
+    /* ── TRANSLATOR PAGE ── */
+    #translator {
+      display: none;
+      flex-direction: column;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    #translator.active { display: flex; }
+
+    .page-header {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 1.5rem; padding-left: 3.5rem;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      padding: 0.4rem 0.9rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { color: var(--white); border-color: var(--teal); }
+
+    .page-title {
+      font-size: 1.6rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--teal), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .translator-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+      flex: 1;
+    }
+
+    /* Camera */
+    .cam-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      min-height: 400px;
+    }
+    #video {
+      width: 100%; display: block;
+      transform: scaleX(-1);
+    }
+    #canvas { display: none; }
+
+    .cam-overlay {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--card);
+      flex-direction: column; gap: 1rem;
+      color: var(--muted);
+    }
+    .cam-overlay .cam-icon { font-size: 3rem; }
+    .cam-overlay p { font-size: 0.9rem; }
+
+    .start-btn {
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 0.75rem 2rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .start-btn:hover { opacity: 0.85; }
+
+    .live-badge {
+      position: absolute; top: 1rem; right: 1rem;
+      background: #16a34a;
+      color: #fff;
+      padding: 0.25rem 0.75rem;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: none;
+    }
+    .live-badge.show { display: block; }
+
+    /* Results panel */
+    .results-panel {
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    .letter-display {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .letter-big {
+      font-size: 7rem; font-weight: 800; line-height: 1;
+      background: linear-gradient(135deg, var(--teal), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      min-height: 7rem; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .letter-label { color: var(--muted); font-size: 0.82rem; margin-top: 0.5rem; }
+
+    /* Hold progress */
+    .hold-bar-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 1.2rem;
+    }
+    .hold-bar-label {
+      display: flex; justify-content: space-between;
+      font-size: 0.8rem; color: var(--muted); margin-bottom: 0.5rem;
+    }
+    .hold-bar-track {
+      background: rgba(255,255,255,0.06);
+      border-radius: 99px; height: 8px;
+    }
+    .hold-bar-fill {
+      height: 8px; border-radius: 99px; width: 0%;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+      transition: width 0.1s;
+    }
+
+    /* Sentence builder */
+    .sentence-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.2rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .sentence-label { font-size: 0.8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .sentence-text {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      min-height: 56px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--white);
+      word-break: break-word;
+    }
+    .sentence-text.empty { color: var(--muted); font-size: 0.88rem; font-weight: 400; font-style: italic; }
+
+    .sentence-btns {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .s-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--white);
+      padding: 0.55rem 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .s-btn:hover { background: rgba(139,92,246,0.15); border-color: var(--purple); }
+    .speak-btn {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      padding: 0.65rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: opacity 0.2s;
+    }
+    .speak-btn:hover { opacity: 0.85; }
+
+    /* Model status */
+    .model-status {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.75rem 1rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .model-status.ready { color: #34d399; border-color: rgba(52,211,153,0.3); }
+    .model-status.error { color: #f87171; border-color: rgba(248,113,113,0.3); }
+
+    /* ── DICTIONARY PAGE ── */
+    #dictionary {
+      display: none;
+      flex-direction: column;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    #dictionary.active { display: flex; }
+
+    .category-nav {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-bottom: 2rem;
+      padding-left: 3.5rem;
+    }
+    .cat-pill {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 0.4rem 1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cat-pill:hover, .cat-pill.active {
+      background: rgba(0,212,200,0.12);
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .dict-content { flex: 1; }
+
+    .dict-section { margin-bottom: 3rem; }
+    .dict-section-title {
+      font-size: 1.2rem; font-weight: 700;
+      color: var(--white);
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    .signs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 1rem;
+    }
+
+    .sign-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s;
+      text-align: center;
+    }
+    .sign-card:hover {
+      border-color: var(--teal);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,212,200,0.1);
+    }
+    .sign-card img {
+      width: 100%; aspect-ratio: 1;
+      object-fit: cover;
+      background: #1a1a2e;
+    }
+    .sign-card .placeholder {
+      width: 100%; aspect-ratio: 1;
+      background: linear-gradient(135deg, #1a1a2e, #0d0d1f);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; color: var(--muted);
+    }
+    .sign-card .sign-name {
+      padding: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--white);
+      text-transform: capitalize;
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    .modal.show { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      max-width: 380px;
+      width: 90%;
+      text-align: center;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1rem;
+      background: none; border: none;
+      color: var(--muted); font-size: 1.3rem;
+      cursor: pointer; line-height: 1;
+    }
+    .modal-img {
+      width: 100%; border-radius: 12px;
+      object-fit: cover; margin-bottom: 1rem;
+      background: #1a1a2e;
+    }
+    .modal-name {
+      font-size: 1.4rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--teal), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-transform: capitalize;
+    }
+    .modal-cat { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 3px; }
+
+    @media (max-width: 768px) {
+      .translator-grid { grid-template-columns: 1fr; }
+      .home-cards { grid-template-columns: 1fr; max-width: 320px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hamburger -->
+<button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+  <span></span><span></span><span></span>
+</button>
+
+<!-- Side menu -->
+<nav class="side-menu" id="sideMenu">
+  <div class="side-menu-logo">
+    <img src="logo.png" alt="Logo" />
+    <span>MudraPragyan.AI</span>
+  </div>
+  <a href="#" class="active" onclick="showPage('home')"><span class="icon">🏠</span> Home</a>
+  <a href="#" onclick="showPage('translator')"><span class="icon">🎥</span> Translator</a>
+  <a href="#" onclick="showPage('dictionary')"><span class="icon">📚</span> Dictionary</a>
+</nav>
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<!-- ═══════════════════════════════════════════════════════ HOME -->
+<div class="page active" id="home">
+  <img src="logo.png" alt="MudraPragyan.AI Logo" class="home-logo" />
+  <div class="title-box">
+    <div class="home-title">MudraPragyan.AI</div>
+    <div class="home-tagline">— Bridging Silence. Connecting Words —</div>
+  </div>
+
+  <div class="home-middle">
+    <div class="home-card" onclick="showPage('dictionary')">
+      <div class="card-icon">📚</div>
+      <div class="card-title">Dictionary</div>
+      <div class="card-desc">Browse ASL signs by category — alphabets, numbers, greetings, and more.</div>
+      <button class="card-btn">Open Dictionary</button>
+    </div>
+
+    <div class="about-box">
+      MudraPragyan.AI is an AI-powered website that translates ASL (American Sign Language) hand gestures
+      into text in real time using computer vision and machine learning. The platform helps bridge
+      communication gaps between sign language users and people unfamiliar with sign language through
+      an accessible and user-friendly interface.
+    </div>
+
+    <div class="home-card" onclick="showPage('translator')">
+      <div class="card-icon">🎥</div>
+      <div class="card-title">Translator</div>
+      <div class="card-desc">Use your webcam to translate ASL signs into text in real time.</div>
+      <button class="card-btn">Open Translator</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TRANSLATOR -->
+<div class="page" id="translator">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">← Back</button>
+    <div class="page-title">🎥 ASL Translator</div>
+  </div>
+
+  <div class="translator-grid">
+    <!-- Camera -->
+    <div class="cam-section">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas"></canvas>
+      <div class="cam-overlay" id="camOverlay">
+        <div class="cam-icon">📷</div>
+        <p>Camera is off</p>
+        <button class="start-btn" onclick="startCamera()">▶ Start Camera</button>
+      </div>
+      <div class="live-badge" id="liveBadge">● LIVE</div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-panel">
+      <div class="model-status" id="modelStatus">Loading model...</div>
+
+      <div class="letter-display">
+        <div class="letter-big" id="letterBig">?</div>
+        <div class="letter-label" id="letterLabel">Hold a sign in front of the camera</div>
+      </div>
+
+      <!-- Debug overlay: press D to toggle -->
+      <div id="debugPanel" style="display:none; background:#111; color:#0f0; font-family:monospace; font-size:12px; padding:8px 12px; border-radius:6px; margin-top:6px; line-height:1.7;">
+        <div>Raw model: <span id="dbgRaw">—</span></div>
+        <div>After fix:&nbsp; <span id="dbgFixed">—</span></div>
+        <div>Confidence: <span id="dbgConf">—</span></div>
+        <div style="color:#888; margin-top:4px;">Press <b style="color:#fff">D</b> to hide</div>
+      </div>
+      <button id="debugBtn" onclick="toggleDebug()" style="margin-top:6px; font-size:11px; padding:3px 10px; cursor:pointer; background:#222; color:#aaa; border:1px solid #444; border-radius:4px;">Debug mode (D)</button>
+
+      <div class="hold-bar-wrap">
+        <div class="hold-bar-label">
+          <span>Hold to add letter</span>
+          <span id="holdPct">0%</span>
+        </div>
+        <div class="hold-bar-track">
+          <div class="hold-bar-fill" id="holdBar"></div>
+        </div>
+      </div>
+
+      <div class="sentence-section">
+        <div class="sentence-label">Sentence Builder</div>
+        <div class="sentence-text empty" id="sentenceDisplay">Detected letters appear here…</div>
+        <div class="sentence-btns">
+          <button class="s-btn" onclick="addSpace()">+ Space</button>
+          <button class="s-btn" onclick="backspace()">⌫ Delete</button>
+          <button class="s-btn" onclick="clearSentence()">🗑 Clear</button>
+        </div>
+        <button class="speak-btn" onclick="speakSentence()">🔊 Speak Sentence</button>
+      </div>
+
+      <button onclick="startAccuracyTest()" style="margin-top:14px; width:100%; padding:10px; background:#1e3a5f; color:#7eb8f7; border:1px solid #2a5080; border-radius:8px; font-size:13px; cursor:pointer; letter-spacing:0.5px;">
+        ◎ Test Model Accuracy
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Accuracy Test Modal -->
+<div id="testModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:2000; justify-content:center; align-items:center;">
+  <div style="background:#161616; border:1px solid #2a2a2a; border-radius:18px; padding:40px 48px; text-align:center; min-width:360px; max-width:480px;">
+
+    <!-- Phase 1: active test -->
+    <div id="testPhase1">
+      <div style="color:#666; font-size:13px; margin-bottom:6px; letter-spacing:1px;">SIGN THIS LETTER</div>
+      <div id="testTarget" style="font-size:110px; font-weight:700; color:#fff; line-height:1.1;">A</div>
+      <div id="testCountdown" style="font-size:52px; font-weight:700; color:#f0a500; margin:8px 0;">3</div>
+      <div style="color:#444; font-size:12px;">Hold steady</div>
+      <div id="testProgress" style="color:#555; font-size:12px; margin-top:12px;">1 / 24</div>
+      <div style="margin-top:18px; background:#1a1a1a; border-radius:8px; padding:10px; font-size:13px; color:#888;">
+        Detecting: <span id="testLive" style="color:#fff; font-weight:600;">—</span>
+      </div>
+      <button onclick="cancelTest()" style="margin-top:18px; padding:8px 22px; background:transparent; color:#555; border:1px solid #333; border-radius:6px; cursor:pointer; font-size:12px;">Cancel</button>
+    </div>
+
+    <!-- Phase 2: results -->
+    <div id="testPhase2" style="display:none;">
+      <div style="color:#aaa; font-size:13px; margin-bottom:10px;">ACCURACY RESULTS</div>
+      <div id="testScore" style="font-size:36px; font-weight:700; color:#fff; margin-bottom:20px;"></div>
+      <div id="testResults" style="max-height:320px; overflow-y:auto; font-size:13px; line-height:1.9; text-align:left; background:#1a1a1a; border-radius:8px; padding:12px 16px;"></div>
+      <button onclick="document.getElementById('testModal').style.display='none'; document.getElementById('testPhase1').style.display='block'; document.getElementById('testPhase2').style.display='none';"
+              style="margin-top:20px; padding:10px 28px; background:#f0a500; color:#000; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ DICTIONARY -->
+<div class="page" id="dictionary">
+  <div class="page-header">
+    <button class="back-btn" onclick="showPage('home')">← Back</button>
+    <div class="page-title">📚 ASL Dictionary</div>
+  </div>
+
+  <div class="category-nav" id="categoryNav"></div>
+  <div class="dict-content" id="dictContent"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    <img class="modal-img" id="modalImg" src="" alt="" />
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-cat" id="modalCat"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  document.querySelectorAll('.side-menu a').forEach(a => a.classList.remove('active'));
+  const link = document.querySelector(`.side-menu a[onclick*="${name}"]`);
+  if (link) link.classList.add('active');
+  closeMenu();
+  if (name === 'dictionary') buildDictionary();
+}
+
+function toggleMenu() {
+  document.getElementById('sideMenu').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeMenu() {
+  document.getElementById('sideMenu').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DICTIONARY DATA
+// ═══════════════════════════════════════════════════════════════════════════
+const CATEGORIES = [
+  { id: 'alphabets',  label: '🔤 Alphabets',  signs: ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'] },
+  { id: 'numbers',    label: '🔢 Numbers',    signs: ['0','1','2','3','4','5','6','7','8','9','10'] },
+  { id: 'greetings',  label: '👋 Greetings',  signs: ['hello','goodbye','thank you','please','sorry','yes','no','welcome','good morning','good night'] },
+  { id: 'family',     label: '👨‍👩‍👧 Family',     signs: ['mom','dad','sister','brother','aunt','uncle','son','daughter','grandma','grandpa','nephew','niece','cousin'] },
+  { id: 'directions', label: '🧭 Directions', signs: ['up','down','left','right','near','far','stop'] },
+  { id: 'animals',    label: '🐾 Animals',    signs: ['dog','cat','fish','rabbit','bird','horse','lion'] },
+  { id: 'sports',     label: '⚽ Sports',     signs: ['tennis','football','basketball','swim','run'] },
+  { id: 'locations',  label: '📍 Locations',  signs: ['home','school','hospital','park','market','neighbourhood'] },
+  { id: 'colors',     label: '🎨 Colors',     signs: ['red','blue','green','yellow','black','white','orange','purple','pink'] },
+  { id: 'feelings',   label: '😊 Feelings',   signs: ['happy','sad','angry','scared','tired','sick','love','pain'] },
+  { id: 'food',       label: '🍎 Food & Drink', signs: ['water','eat','drink','milk','bread','apple','rice'] },
+];
+
+function imgPath(catId, sign, ext) {
+  const fname = sign.toLowerCase().replace(/ /g, '_');
+  return `images/${catId}/${fname}.${ext || 'jpg'}`;
+}
+
+function tryNextFormat(img, catId, sign) {
+  const fmts = ['jpg', 'png', 'webp'];
+  img._fmtIdx = (img._fmtIdx || 0) + 1;
+  if (img._fmtIdx < fmts.length) {
+    img.src = imgPath(catId, sign, fmts[img._fmtIdx]);
+  } else {
+    img.style.display = 'none';
+    img.nextElementSibling.style.display = 'flex';
+  }
+}
+
+function buildDictionary() {
+  const nav = document.getElementById('categoryNav');
+  const content = document.getElementById('dictContent');
+  if (nav.children.length > 0) return; // already built
+
+  // Category pills
+  CATEGORIES.forEach(cat => {
+    const pill = document.createElement('button');
+    pill.className = 'cat-pill';
+    pill.textContent = cat.label;
+    pill.onclick = () => {
+      document.getElementById('sec-' + cat.id).scrollIntoView({ behavior: 'smooth' });
+    };
+    nav.appendChild(pill);
+  });
+
+  // Sections
+  CATEGORIES.forEach(cat => {
+    const sec = document.createElement('div');
+    sec.className = 'dict-section';
+    sec.id = 'sec-' + cat.id;
+
+    sec.innerHTML = `<div class="dict-section-title">${cat.label}</div>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'signs-grid';
+
+    cat.signs.forEach(sign => {
+      const card = document.createElement('div');
+      card.className = 'sign-card';
+      card.onclick = () => openModal(sign, cat.id, cat.label);
+
+      card.innerHTML = `
+        <img src="${imgPath(cat.id, sign)}" alt="${sign}"
+          onerror="tryNextFormat(this,'${cat.id}','${sign}')"
+          onload="this.nextElementSibling.style.display='none'" />
+        <div class="placeholder" style="display:none">🤟</div>
+        <div class="sign-name">${sign}</div>
+      `;
+      grid.appendChild(card);
+    });
+
+    sec.appendChild(grid);
+    content.appendChild(sec);
+  });
+}
+
+function openModal(sign, catId, catLabel) {
+  const mImg = document.getElementById('modalImg');
+  mImg._fmtIdx = 0;
+  mImg.style.display = '';
+  mImg.src = imgPath(catId, sign);
+  mImg.onerror = function() { tryNextFormat(this, catId, sign); };
+  document.getElementById('modalName').textContent = sign;
+  document.getElementById('modalCat').textContent = catLabel;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) closeModalBtn();
+}
+function closeModalBtn() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODEL
+// ═══════════════════════════════════════════════════════════════════════════
+let MODEL = null;
+
+async function loadModel() {
+  const status = document.getElementById('modelStatus');
+  try {
+    const res = await fetch('model/model_weights.json');
+    if (!res.ok) throw new Error('Model file not found');
+    MODEL = await res.json();
+    status.textContent = '✅ Model ready — ' + MODEL.labels.length + ' signs loaded';
+    status.className = 'model-status ready';
+  } catch(e) {
+    status.textContent = '⚠ Model not loaded yet — run Script 2 first';
+    status.className = 'model-status error';
+  }
+}
+
+function relu(x) { return Math.max(0, x); }
+
+function mlpForward(input) {
+  if (!MODEL) return null;
+
+  // Normalize
+  let x = input.map((v, i) => (v - MODEL.scaler_mean[i]) / MODEL.scaler_std[i]);
+
+  // Forward pass through each layer
+  for (let l = 0; l < MODEL.coefs.length; l++) {
+    const W = MODEL.coefs[l];       // shape: [in, out]
+    const b = MODEL.intercepts[l];  // shape: [out]
+    const out = new Array(b.length).fill(0);
+    for (let j = 0; j < b.length; j++) {
+      let sum = b[j];
+      for (let i = 0; i < x.length; i++) sum += x[i] * W[i][j];
+      out[j] = (l < MODEL.coefs.length - 1) ? relu(sum) : sum;
+    }
+    x = out;
+  }
+
+  // Softmax
+  const maxV = Math.max(...x);
+  const exp  = x.map(v => Math.exp(v - maxV));
+  const sum  = exp.reduce((a, b) => a + b, 0);
+  const probs = exp.map(v => v / sum);
+
+  const best = probs.indexOf(Math.max(...probs));
+  return { letter: MODEL.labels[best], confidence: probs[best] };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MEDIAPIPE HANDS + CAMERA
+// ═══════════════════════════════════════════════════════════════════════════
+let mpCamera = null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CAMERA + DETECTION LOOP
+// ═══════════════════════════════════════════════════════════════════════════
+let sentence = '';
+let lastLetter = '';
+let holdFrames = 0;
+let cooldown = 0;
+const HOLD_NEEDED = 20;
+
+// Motion tracking for J and Z
+const motionBuffer = [];
+const MOTION_FRAMES = 25;
+
+async function startCamera() {
+  try {
+    const video = document.getElementById('video');
+
+    const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+    hands.onResults(onHandResults);
+
+    mpCamera = new Camera(video, {
+      onFrame: async () => { await hands.send({ image: video }); },
+      width: 1280, height: 720,
+    });
+    await mpCamera.start();
+
+    document.getElementById('camOverlay').style.display = 'none';
+    document.getElementById('liveBadge').classList.add('show');
+  } catch(e) {
+    alert('Could not access camera: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GEOMETRIC POST-PROCESSING — fixes model confusions for specific pairs
+// ═══════════════════════════════════════════════════════════════════════════
+function geometricFix(letter, lm) {
+  const p  = lm.map(l => [l.x, l.y, l.z]);
+  const sc = Math.max(Math.hypot(p[9][0]-p[0][0], p[9][1]-p[0][1]), 1e-4);
+  const tipAbovePip = (tip, pip) => p[tip][1] < p[pip][1] - 0.06 * sc;
+  const dist = (a, b) => Math.hypot(p[a][0]-p[b][0], p[a][1]-p[b][1]) / sc;
+
+  // F / B / W
+  if (letter === 'F' || letter === 'B' || letter === 'W') {
+    if (!tipAbovePip(8, 6)) return 'F';
+    return tipAbovePip(20, 18) ? 'B' : 'W';
+  }
+
+  // E / O — rescues F (model says E but middle/ring/pinky clearly up) and P (index pointing down)
+  if (letter === 'E' || letter === 'O') {
+    if (p[8][1] > p[5][1] + 0.03 * sc) return 'P';
+    const mUp = p[12][1] < p[10][1] - 0.02*sc && p[16][1] < p[14][1] - 0.02*sc && p[20][1] < p[18][1] - 0.02*sc;
+    if (mUp && !tipAbovePip(8, 6)) return 'F';
+    return dist(8, 4) < 0.20 ? 'O' : 'E';
+  }
+
+  // D / X / C — rescues L (thumb extended far = L not D) and X (tip not clearly above DIP)
+  if (letter === 'D' || letter === 'X' || letter === 'C') {
+    if (!tipAbovePip(8, 6)) return 'C';
+    if (dist(4, 9) > 0.65) return 'L';
+    return p[8][1] < p[7][1] - 0.05 * sc ? 'D' : 'X';
+  }
+
+  // G / H
+  if (letter === 'G' || letter === 'H') {
+    return tipAbovePip(12, 10) ? 'H' : 'G';
+  }
+
+  // S / I / K / V / Z — unified with looser tip-up threshold; Z added to rescue Y
+  if (letter === 'S' || letter === 'I' || letter === 'K' || letter === 'V' || letter === 'Z') {
+    const tipUp = (tip, pip) => p[tip][1] < p[pip][1] - 0.02 * sc;
+    if (tipUp(8, 6) && tipUp(12, 10)) return dist(8, 12) > 0.40 ? 'V' : 'K';
+    if (tipUp(20, 18) && !tipUp(8, 6))  return dist(4, 5) > 0.45 ? 'Y' : 'I';
+    const d45 = dist(4,5); const d49 = dist(4,9); const d413 = dist(4,13);
+    if (Math.min(d45,d49,d413) < 0.32) {
+      if (d45 <= d49 && d45 <= d413) return 'T';
+      if (d49 <= d413) return 'N';
+    }
+    return 'S';
+  }
+
+  // M — rescues N (ring tip clearly higher than middle tip = N, not M)
+  if (letter === 'M') {
+    if (tipAbovePip(8, 6)) return 'K';
+    return p[16][1] < p[12][1] - 0.03 * sc ? 'N' : 'M';
+  }
+
+  // N / U
+  if (letter === 'N' || letter === 'U') {
+    if (tipAbovePip(8, 6) && tipAbovePip(12, 10)) return 'U';
+    if (tipAbovePip(8, 6)) return 'K';
+    return 'N';
+  }
+
+  // T / A — rescues B (all 4 fingers loosely above PIP) and N (thumb near middle MCP)
+  if (letter === 'T' || letter === 'A') {
+    if (p[8][1]<p[6][1] && p[12][1]<p[10][1] && p[16][1]<p[14][1] && p[20][1]<p[18][1]) return 'B';
+    if (p[4][1] < p[5][1] - 0.05 * sc) return 'A';
+    const d45 = dist(4,5); const d49 = dist(4,9); const d413 = dist(4,13);
+    if (d49 < d45 && d49 < d413 && d49 < 0.30) return 'N';
+    const minFX = Math.min(p[5][0], p[9][0]);
+    const maxFX = Math.max(p[5][0], p[9][0]);
+    return p[4][0] > minFX - 0.08 * sc && p[4][0] < maxFX + 0.08 * sc ? 'T' : 'A';
+  }
+
+  // P / L / Q / R — rescues H (both fingers sideways) and M (thumb tucked when model says L)
+  if (letter === 'P' || letter === 'L' || letter === 'Q' || letter === 'R') {
+    if (tipAbovePip(8, 6) && tipAbovePip(12, 10)) return 'R';
+    const indexSigUp    = p[8][1] < p[5][1] - 0.07 * sc;
+    const indexDown     = p[8][1] > p[5][1];
+    const middleSigDown = p[12][1] > p[9][1] + 0.11 * sc;
+    if (!indexSigUp && !indexDown && dist(8,5) > 0.50 && dist(12,9) > 0.40) return 'H';
+    if (indexSigUp) return dist(4, 13) < 0.35 ? 'M' : 'L';
+    if (indexDown && middleSigDown) return 'P';
+    if (indexDown) return 'Q';
+    if (dist(4, 13) < 0.35) return 'M';
+    return letter;
+  }
+
+  return letter;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// J / Z STATE MACHINE
+// NOTE: camera is displayed mirrored (scaleX -1) but MediaPipe sees the
+// original feed. So user moving RIGHT = camera x DECREASING.
+// ═══════════════════════════════════════════════════════════════════════════
+let jzState = 'idle';
+let jzTimer = 0;
+let jzFlicker = 0;
+const frameHistory = [];
+
+function updateJZ(letter, conf, lm) {
+  frameHistory.push({ ix: lm[8].x, iy: lm[8].y, px: lm[20].x, py: lm[20].y });
+  if (frameHistory.length > 45) frameHistory.shift();
+  jzTimer = Math.max(0, jzTimer - 1);
+
+  // Y is unrelated to J/Z — reset tracking so Z from a prior D doesn't capture Y
+  if (letter === 'Y') {
+    jzState = 'idle'; frameHistory.length = 0; jzFlicker = 0;
+    return 'Y';
+  }
+
+  if (jzState === 'confirmed_j') {
+    if (jzTimer === 0) { jzState = 'idle'; frameHistory.length = 0; }
+    return 'J';
+  }
+  if (jzState === 'confirmed_z') {
+    if (jzTimer === 0) { jzState = 'idle'; frameHistory.length = 0; }
+    return 'Z';
+  }
+
+  if (letter === 'I') {
+    jzFlicker = 0;
+    if (jzState === 'idle' && conf > 0.55) {
+      jzState = 'tracking_j'; jzTimer = 65; frameHistory.length = 0;
+    }
+    if (jzState === 'tracking_j') {
+      if (jzTimer === 0) { jzState = 'idle'; frameHistory.length = 0; }
+      else if (frameHistory.length >= 12 && isJShape()) {
+        jzState = 'confirmed_j'; jzTimer = 32; frameHistory.length = 0; return 'J';
+      }
+    }
+    return 'I';
+  }
+
+  if (letter === 'D') {
+    jzFlicker = 0;
+    if (jzState === 'idle' && conf > 0.55) {
+      jzState = 'tracking_z'; jzTimer = 65; frameHistory.length = 0;
+    }
+    if (jzState === 'tracking_z') {
+      if (jzTimer === 0) { jzState = 'idle'; frameHistory.length = 0; }
+      else if (frameHistory.length >= 12 && isZShape()) {
+        jzState = 'confirmed_z'; jzTimer = 32; frameHistory.length = 0; return 'Z';
+      }
+    }
+    return 'D';
+  }
+
+  // Non-base letter during tracking — rely on timer only, never abort mid-motion
+  if (jzState === 'tracking_j' || jzState === 'tracking_z') {
+    if (jzTimer === 0) { jzState = 'idle'; frameHistory.length = 0; jzFlicker = 0; }
+    else {
+      if (jzState === 'tracking_j' && frameHistory.length >= 12 && isJShape()) {
+        jzState = 'confirmed_j'; jzTimer = 32; frameHistory.length = 0; return 'J';
+      }
+      if (jzState === 'tracking_z' && frameHistory.length >= 12 && isZShape()) {
+        jzState = 'confirmed_z'; jzTimer = 32; frameHistory.length = 0; return 'Z';
+      }
+      return jzState === 'tracking_j' ? 'I' : 'D';
+    }
+  }
+
+  jzFlicker = 0;
+  return letter;
+}
+
+function isJShape() {
+  // Pinky tip traces a J: significant downward movement
+  const n = frameHistory.length;
+  if (n < 12) return false;
+  const start = frameHistory[0];
+  const end   = frameHistory[n - 1];
+  const downMove  = end.py - start.py;
+  const totalMove = Math.abs(end.py - start.py) + Math.abs(end.px - start.px);
+  return downMove > 0.07 && totalMove > 0.09;
+}
+
+function isZShape() {
+  // Index tip traces Z. Camera is mirrored visually but MediaPipe sees raw feed.
+  // User moves right → camera x decreases. User moves left → camera x increases.
+  // Try BOTH directions to handle different hand orientations / camera setups.
+  const n = frameHistory.length;
+  if (n < 12) return false;
+  const t  = Math.floor(n / 3);
+  const p0 = frameHistory[0];
+  const p1 = frameHistory[t];
+  const p2 = frameHistory[2 * t];
+  const p3 = frameHistory[n - 1];
+  const seg1 = p1.ix - p0.ix;
+  const seg2 = p2.ix - p1.ix;
+  const seg3 = p3.ix - p2.ix;
+  const totalMove = Math.abs(p3.ix - p0.ix) + Math.abs(p3.iy - p0.iy);
+  if (totalMove < 0.04) return false;
+  // Match either direction of Z (camera or display coords)
+  const fwd = seg1 < -0.010 && seg2 > 0.010 && seg3 < -0.008;
+  const rev = seg1 > 0.010  && seg2 < -0.010 && seg3 > 0.008;
+  return fwd || rev;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HAND RESULTS HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+let debugVisible = false;
+function toggleDebug() {
+  debugVisible = !debugVisible;
+  document.getElementById('debugPanel').style.display = debugVisible ? 'block' : 'none';
+}
+document.addEventListener('keydown', e => { if (e.key === 'd' || e.key === 'D') toggleDebug(); });
+
+function onHandResults(results) {
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    updateLetter('?');
+    if (debugVisible) { document.getElementById('dbgRaw').textContent = '—'; document.getElementById('dbgFixed').textContent = '—'; document.getElementById('dbgConf').textContent = '—'; }
+    jzState = 'idle'; frameHistory.length = 0;
+    return;
+  }
+
+  const lm  = results.multiHandLandmarks[0];
+  const vec  = landmarksToVector(lm);
+  const pred = mlpForward(vec);
+  if (!pred) return;
+  if (pred.letter === 'space') { updateLetter('?'); return; }
+
+  if (debugVisible) {
+    document.getElementById('dbgRaw').textContent = pred.letter;
+    document.getElementById('dbgConf').textContent = (pred.confidence * 100).toFixed(1) + '%';
+  }
+
+  // Skip very low confidence predictions
+  if (pred.confidence < 0.45) { updateLetter('?'); return; }
+
+  let letter = pred.letter;
+
+  // 1. Geometric fixes for confused pairs
+  letter = geometricFix(letter, lm);
+
+  // 2. J/Z motion state machine (pass confidence so Q doesn't trigger Z)
+  letter = updateJZ(letter, pred.confidence, lm);
+
+  if (debugVisible) document.getElementById('dbgFixed').textContent = letter;
+
+  if (testActive && letter !== '?') {
+    testBuffer.push(letter);
+    document.getElementById('testLive').textContent = letter;
+  }
+
+  updateLetter(letter);
+}
+
+function landmarksToVector(lm) {
+  const pts   = lm.map(p => [p.x, p.y, p.z]);
+  const wrist = pts[0];
+  const mid9  = pts[9];
+  const sc    = Math.max(Math.hypot(mid9[0]-wrist[0], mid9[1]-wrist[1], mid9[2]-wrist[2]), 1e-4);
+  return pts.map(p => [(p[0]-wrist[0])/sc, (p[1]-wrist[1])/sc, (p[2]-wrist[2])/sc]).flat();
+}
+
+function updateLetter(letter) {
+  const letterBig   = document.getElementById('letterBig');
+  const letterLabel = document.getElementById('letterLabel');
+  const holdBar     = document.getElementById('holdBar');
+  const holdPct     = document.getElementById('holdPct');
+
+  if (letter === '?') {
+    letterBig.textContent = '?';
+    letterLabel.textContent = 'Show your hand';
+    holdFrames = 0; lastLetter = '';
+    holdBar.style.width = '0%';
+    holdPct.textContent = '0%';
+    return;
+  }
+
+  letterBig.textContent = letter;
+  letterLabel.textContent = 'Detected: ' + letter;
+
+  cooldown = Math.max(0, cooldown - 1);
+
+  if (letter === lastLetter) {
+    holdFrames++;
+  } else {
+    holdFrames = 0;
+    lastLetter = letter;
+  }
+
+  const pct = Math.min(100, Math.round(holdFrames / HOLD_NEEDED * 100));
+  holdBar.style.width = pct + '%';
+  holdPct.textContent = pct + '%';
+
+  if (holdFrames >= HOLD_NEEDED && cooldown === 0) {
+    sentence += letter;
+    holdFrames = 0;
+    cooldown = 30;
+    renderSentence();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SENTENCE CONTROLS
+// ═══════════════════════════════════════════════════════════════════════════
+function renderSentence() {
+  const el = document.getElementById('sentenceDisplay');
+  if (sentence) {
+    el.textContent = sentence;
+    el.className = 'sentence-text';
+  } else {
+    el.textContent = 'Detected letters appear here…';
+    el.className = 'sentence-text empty';
+  }
+}
+
+function addSpace()      { sentence += ' '; renderSentence(); }
+function backspace()     { sentence = sentence.slice(0, -1); renderSentence(); }
+function clearSentence() { sentence = ''; holdFrames = 0; lastLetter = ''; renderSentence(); }
+
+function speakSentence() {
+  const text = sentence.trim();
+  if (!text) return;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'en-US';
+  speechSynthesis.speak(utt);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCURACY TEST MODE
+// ═══════════════════════════════════════════════════════════════════════════
+const TEST_LETTERS = 'ABCDEFGHIKLMNOPQRSTUVWXY'.split(''); // skip J, Z (motion-based)
+let testActive = false;
+let testIndex  = 0;
+let testResults = [];
+let testBuffer  = [];
+let testTickId  = null;
+let testSecs    = 3;
+
+function startAccuracyTest() {
+  if (!MODEL) { alert('Model not loaded yet.'); return; }
+  testActive  = true;
+  testIndex   = 0;
+  testResults = [];
+  document.getElementById('testModal').style.display = 'flex';
+  document.getElementById('testPhase1').style.display = 'block';
+  document.getElementById('testPhase2').style.display = 'none';
+  runTestLetter();
+}
+
+function runTestLetter() {
+  if (testIndex >= TEST_LETTERS.length) { finishTest(); return; }
+  jzState = 'idle'; jzFlicker = 0; frameHistory.length = 0;
+  const target = TEST_LETTERS[testIndex];
+  testBuffer = [];
+  testSecs   = 3;
+  document.getElementById('testTarget').textContent    = target;
+  document.getElementById('testCountdown').textContent = testSecs;
+  document.getElementById('testLive').textContent      = '—';
+  document.getElementById('testProgress').textContent  = `${testIndex + 1} / ${TEST_LETTERS.length}`;
+
+  testTickId = setInterval(() => {
+    testSecs--;
+    document.getElementById('testCountdown').textContent = testSecs;
+    if (testSecs <= 0) {
+      clearInterval(testTickId);
+      const counts = {};
+      testBuffer.forEach(l => { counts[l] = (counts[l] || 0) + 1; });
+      const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const detected = entries[0]?.[0] || '?';
+      testResults.push({ target, detected, correct: detected === target });
+      testIndex++;
+      setTimeout(runTestLetter, 600);
+    }
+  }, 1000);
+}
+
+function cancelTest() {
+  clearInterval(testTickId);
+  testActive = false;
+  document.getElementById('testModal').style.display = 'none';
+}
+
+function finishTest() {
+  testActive = false;
+  const correct = testResults.filter(r => r.correct).length;
+  const total   = testResults.length;
+  const pct     = Math.round(correct / total * 100);
+
+  document.getElementById('testScore').textContent = `${correct} / ${total} correct  (${pct}%)`;
+  document.getElementById('testScore').style.color = pct >= 80 ? '#4caf50' : pct >= 60 ? '#f0a500' : '#e74c3c';
+
+  document.getElementById('testResults').innerHTML = testResults.map(r => {
+    const icon  = r.correct ? '✓' : '✗';
+    const color = r.correct ? '#4caf50' : '#e74c3c';
+    const extra = r.correct ? '' : ` → detected <b>${r.detected}</b>`;
+    return `<div style="color:${color}">${icon} <b>${r.target}</b>${extra}</div>`;
+  }).join('');
+
+  document.getElementById('testPhase1').style.display = 'none';
+  document.getElementById('testPhase2').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+loadModel();
+</script>
+</body>
+</html>
