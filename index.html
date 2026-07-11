@@ -754,7 +754,7 @@ const CATEGORIES = [
 
 function imgPath(catId, sign, ext) {
   const fname = sign.toLowerCase().replace(/ /g, '_');
-  return `images/${catId}/${fname}.${ext || 'jpg'}`;
+  return `${catId}/${fname}.${ext || 'jpg'}`;
 }
 
 function tryNextFormat(img, catId, sign) {
