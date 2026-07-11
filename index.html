@@ -840,7 +840,7 @@ let MODEL = null;
 async function loadModel() {
   const status = document.getElementById('modelStatus');
   try {
-    const res = await fetch('model/model_weights.json');
+    const res = await fetch('model_weights.json');
     if (!res.ok) throw new Error('Model file not found');
     MODEL = await res.json();
     status.textContent = '✅ Model ready — ' + MODEL.labels.length + ' signs loaded';
